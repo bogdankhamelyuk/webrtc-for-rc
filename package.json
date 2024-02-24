@@ -9,10 +9,16 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-firebase/app": "^18.9.0",
+    "@react-native-firebase/firestore": "^18.9.0",
+    "@react-navigation/native": "^6.1.12",
+    "@types/react-native-vector-icons": "^6.4.18",
     "expo": "~50.0.7",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",
-    "react-native": "0.73.4"
+    "react-native": "0.73.4",
+    "react-native-vector-icons": "^10.0.3",
+    "react-native-webrtc": "^118.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

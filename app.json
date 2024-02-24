@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2a731d37-9ca1-43ff-b335-22afcdd3c4ef"
+      }
+    },
+    "owner": "bogdankhamelyuk"
   }
 }
