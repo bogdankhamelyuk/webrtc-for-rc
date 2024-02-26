@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "4376297672",
+    "project_id": "webrtc-intro-dce56",
+    "storage_bucket": "webrtc-intro-dce56.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:4376297672:android:2ef74d17d9d9d8e368e5fd",
+        "android_client_info": {
+          "package_name": "com.bogdankhamelyuk.webrtcforrc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7wGhhx-KSe10y6RjfpDKcQuN5bBq2-Ts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
