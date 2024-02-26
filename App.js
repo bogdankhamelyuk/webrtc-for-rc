@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { MediaStream, RTCPeerConnection } from "react-native-webrtc";
 import { getDatabase } from "firebase/database";
 import { initializeApp } from "firebase/app";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getStream } from "./Utils";
 export default function App() {
   const firebaseConfig = {
@@ -18,34 +18,44 @@ export default function App() {
   const app = initializeApp(firebaseConfig);
   const firestore = getDatabase(app);
   const [localStream, setLocalStream] = useState(null);
-  useEffect(() => {
-    const initRTCPeerConnection = async () => {
-      /**
-       * configuration object for the RTCPeerConnection
-       */
-      const servers = {
-        iceServers: [
-          {
-            urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
-          },
-        ],
-        iceCandidatePoolSize: 10,
-      };
-      try {
-        /**
-         * An instance of the `RTCPeerConnection` class. Represents a connection between the local device and
-         * a remote peer for the purpose of real-time communication, such as audio or video conferencing.
-         */
-        const peerConnection = new RTCPeerConnection(servers);
-
-        const stream = getStream();
-        console.log("RTCPeerConnection initialized:", peerConnection);
-      } catch (error) {
-        console.error("Error initializing RTCPeerConnection:", error);
-      }
+  const [remoteStream, setRemoteStream] = useState(null);
+  const peerConnection = useRef();
+  const connecting = useRef();
+  // useEffect(async () => {
+  const initRTCPeerConnection = async () => {
+    /**
+     * configuration object for the RTCPeerConnection
+     */
+    const servers = {
+      iceServers: [
+        {
+          urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
+        },
+      ],
+      iceCandidatePoolSize: 10,
     };
-    initRTCPeerConnection();
-  }, []);
+    try {
+      /**
+       * An instance of the `RTCPeerConnection` class. Represents a connection between the local device and
+       * a remote peer for the purpose of real-time communication, such as audio or video conferencing.
+       */
+      console.log("RTCPeerConnection initialized:", peerConnection);
+      peerConnection.current = new RTCPeerConnection(servers);
+      // get video for the call
+      const mediaStream = await getStream();
+      if (mediaStream) {
+        setLocalStream(mediaStream);
+        mediaStream.getTracks().forEach((track) => {
+          peerConnection.current.addTrack(track, mediaStream);
+        });
+      }
+      peerConnection.current.ontrack = (event) => {};
+    } catch (error) {
+      console.error("Error initializing RTCPeerConnection:", error);
+    }
+  };
+  // initRTCPeerConnection();
+  // }, []);
   return (
     <View style={styles.container}>
       <Text>Open up App.js to start working on your app!</Text>
