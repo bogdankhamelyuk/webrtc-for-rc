@@ -49,7 +49,14 @@ export default function App() {
           peerConnection.current.addTrack(track, mediaStream);
         });
       }
-      peerConnection.current.ontrack = (event) => {};
+      /** remote stream for a while */
+      const rs = new MediaStream();
+      peerConnection.current.ontrack = (event) => {
+        event.streams[0].getTracks().forEach((track) => {
+          rs.addTrack(track);
+        });
+      };
+      setRemoteStream(rs);
     } catch (error) {
       console.error("Error initializing RTCPeerConnection:", error);
     }
