@@ -1,6 +1,6 @@
 import { mediaDevices } from "react-native-webrtc";
 
-export async function getStream() {
+export async function getLocalStream() {
   let mediaConstraints = {
     audio: true,
     video: true,

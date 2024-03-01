@@ -1,10 +1,12 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
-import { MediaStream, RTCPeerConnection } from "react-native-webrtc";
+import { StyleSheet, Text, View, Button } from "react-native";
+import { MediaStream, RTCPeerConnection, RTCView } from "react-native-webrtc";
 import { getDatabase } from "firebase/database";
 import { initializeApp } from "firebase/app";
 import { useEffect, useRef, useState } from "react";
-import { getStream } from "./Utils";
+import { getLocalStream } from "./Utils";
+import { SafeAreaView } from "react-native";
+
 export default function App() {
   const firebaseConfig = {
     apiKey: "AIzaSyAB3284qa9fUTgYtGP_e0nOCBzfwc9ZhAg",
@@ -17,15 +19,34 @@ export default function App() {
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const firestore = getDatabase(app);
-  const [localStream, setLocalStream] = useState(null);
+  const [localStream, setLocalStream] = useState({
+    video: null,
+    buttonText: "start",
+  });
   const [remoteStream, setRemoteStream] = useState(null);
   const peerConnection = useRef();
   const connecting = useRef();
+
+  const startLocalStream = async () => {
+    const mediaStream = await getLocalStream();
+    setLocalStream({
+      video: mediaStream,
+      buttonText: "stop",
+    });
+  };
+
   // useEffect(async () => {
+  const toggleLocalStream = async () => {
+    if (localStream.video) {
+      // stop local stream
+    } else {
+      console.log("i am here");
+      await startLocalStream();
+    }
+  };
+
   const initRTCPeerConnection = async () => {
-    /**
-     * configuration object for the RTCPeerConnection
-     */
+    /** configuration object for the RTCPeerConnection */
     const servers = {
       iceServers: [
         {
@@ -39,24 +60,22 @@ export default function App() {
        * An instance of the `RTCPeerConnection` class. Represents a connection between the local device and
        * a remote peer for the purpose of real-time communication, such as audio or video conferencing.
        */
-      console.log("RTCPeerConnection initialized:", peerConnection);
       peerConnection.current = new RTCPeerConnection(servers);
+      console.log("RTCPeerConnection initialized:", peerConnection.current);
+
       // get video for the call
-      const mediaStream = await getStream();
-      if (mediaStream) {
-        setLocalStream(mediaStream);
-        mediaStream.getTracks().forEach((track) => {
-          peerConnection.current.addTrack(track, mediaStream);
-        });
-      }
+
+      localStream.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, localStream);
+      });
       /** remote stream for a while */
-      const rs = new MediaStream();
-      peerConnection.current.ontrack = (event) => {
-        event.streams[0].getTracks().forEach((track) => {
-          rs.addTrack(track);
-        });
-      };
-      setRemoteStream(rs);
+      // const rs = new MediaStream();
+      // peerConnection.current.ontrack = (event) => {
+      //   event.streams[0].getTracks().forEach((track) => {
+      //     rs.addTrack(track);
+      //   });
+      // };
+      // setRemoteStream(rs);
     } catch (error) {
       console.error("Error initializing RTCPeerConnection:", error);
     }
@@ -64,10 +83,12 @@ export default function App() {
   // initRTCPeerConnection();
   // }, []);
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Button title={localStream.buttonText} onPress={toggleLocalStream} />
+      <View style={styles.rtcview}>
+        {localStream.video && <RTCView style={styles.localstream} streamURL={localStream.video.toURL()} />}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -75,7 +96,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    justifyContent: "space-between",
     alignItems: "center",
+    height: "100%",
+  },
+  rtcview: {
     justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
+    width: "100%",
+    backgroundColor: "yellow",
+  },
+  localstream: {
+    width: "100%",
+    height: "100%",
   },
 });
