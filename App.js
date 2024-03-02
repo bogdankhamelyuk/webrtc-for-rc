@@ -1,8 +1,9 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View, Button, Switch, SafeAreaView } from "react-native";
 import { MediaStream, RTCPeerConnection, RTCView } from "react-native-webrtc";
-import { getDatabase } from "firebase/database";
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { doc, collection } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { getLocalStream } from "./Utils";
 
@@ -16,23 +17,39 @@ export default function App() {
     appId: "1:4376297672:web:7263074fbe4a0fed68e5fd",
   };
   // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const firestore = getDatabase(app);
+  let app, firestoreDB, callDocId;
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const peerConnection = useRef();
   const connecting = useRef();
 
-  const startCall = () => {
-    console.log(firestore);
+  const startFirebase = () => {
+    app = initializeApp(firebaseConfig);
+    firestoreDB = getFirestore(app);
+  };
+
+  const startCall = async () => {
     //ToDo: read docs: https://rnfirebase.io/firestore/usage
-    const callDoc = firestore.collection("calls").doc();
+    startFirebase();
+    const callDoc = collection(firestoreDB, "calls");
+    const offerCandidates = doc(firestoreDB, "calls/offerCandidates");
+    const answerCandidates = doc(firestoreDB, "calls/answerCandidates");
+    callDocId = callDoc.id;
+    await initRTCPeerConnection();
+    peerConnection.current.onicecandidate = (event) => {
+      event.candidate && offerCandidates.add(event.candidate.toJSON());
+    };
+    console.log("OK");
   };
 
   const startLocalStream = async () => {
     const mediaStream = await getLocalStream();
     setLocalStream(mediaStream);
+    return Promise.resolve(mediaStream);
   };
+
+  /**Initialize a remote video feed with an empty stream.
+   * Eventually, the stream will be populated when tracks are added to the peer connection. */
   const startRemoteStream = () => {
     const remoteStreamObj = new MediaStream();
     peerConnection.current.ontrack = (event) => {
@@ -52,8 +69,7 @@ export default function App() {
   };
 
   const initRTCPeerConnection = async () => {
-    /** configuration object for the RTCPeerConnection */
-    const servers = {
+    const config = {
       iceServers: [
         {
           urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
@@ -62,24 +78,20 @@ export default function App() {
       iceCandidatePoolSize: 10,
     };
     try {
-      /**
-       * create an instance of the `RTCPeerConnection` class. Represents a connection between the local device and
-       * a remote peer for the purpose of real-time communication, such as audio or video conferencing.
-       */
-      peerConnection.current = new RTCPeerConnection(servers);
-      console.log("RTCPeerConnection initialized:", peerConnection.current);
-      startLocalStream();
+      peerConnection.current = new RTCPeerConnection(config);
+      const ls = await startLocalStream();
       // Push tracks from local stream to peer connection
-      localStream.getTracks().forEach((track) => {
-        peerConnection.current.addTrack(track, localStream);
+      ls.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, ls);
       });
       startRemoteStream();
+      return Promise.resolve();
     } catch (error) {
-      console.error("Error initializing RTCPeerConnection:", error);
+      // console.error("Error initializing RTCPeerConnection:", error);
+      return Promise.reject(error);
     }
   };
-  // initRTCPeerConnection();
-  // }, [])
+
   if (!remoteStream) {
     return (
       <SafeAreaView style={styles.container}>
@@ -90,7 +102,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.rtcview}>
-          {localStream && <RTCView style={styles.localstream} streamURL={localStream.toURL()} />}
+          <RTCView style={styles.localstream} streamURL={localStream.toURL()} />
         </View>
       </SafeAreaView>
     );
