@@ -23,6 +23,12 @@ export default function App() {
   const peerConnection = useRef();
   const connecting = useRef();
 
+  const startCall = () => {
+    console.log(firestore);
+    //ToDo: read docs: https://rnfirebase.io/firestore/usage
+    const callDoc = firestore.collection("calls").doc();
+  };
+
   const startLocalStream = async () => {
     const mediaStream = await getLocalStream();
     setLocalStream(mediaStream);
@@ -73,25 +79,32 @@ export default function App() {
     }
   };
   // initRTCPeerConnection();
-  // }, []);
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* <Button title={localStream.buttonText} onPress={toggleLocalStream} /> */}
-      <View style={styles.rtcview}>
-        {localStream && <RTCView style={styles.localstream} streamURL={localStream.toURL()} />}
-      </View>
-    </SafeAreaView>
-  );
+  // }, [])
+  if (!remoteStream) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Button title="Start call" onPress={startCall} />
+      </SafeAreaView>
+    );
+  } else {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.rtcview}>
+          {localStream && <RTCView style={styles.localstream} streamURL={localStream.toURL()} />}
+        </View>
+      </SafeAreaView>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    // justifyContent: "center",
-    // alignItems: "center",
+    justifyContent: "center",
+    alignItems: "center",
     // height: "100%",
-    // display: "flex",
+    display: "flex",
   },
   rtcview: {
     justifyContent: "center",
