@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Button, Switch, SafeAreaView } from "react-nati
 import { MediaStream, RTCPeerConnection, RTCView } from "react-native-webrtc";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { doc, collection, setDoc, addDoc } from "firebase/firestore";
+import { doc, collection, setDoc, addDoc, onSnapshot } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { getLocalStream } from "./Utils";
 
@@ -37,18 +37,19 @@ export default function App() {
 
   const startCall = async () => {
     startFirebase();
-    const path = "calls/" + generateID(5);
-    console.log(path);
-    const callDoc = doc(firestoreDB, path);
-    const offerCandidates = collection(firestoreDB, path + "/offerCandidates");
-    const answerCandidates = collection(firestoreDB, path + "/answerCandidates");
+
+    const callColl = collection(firestoreDB, "calls");
+    const callDoc = doc(callColl);
+    const offerCandidates = collection(callDoc, "offerCandidates");
+    const answerCandidates = collection(callDoc, "answerCandidates");
     console.log(callDoc);
     callInput = callDoc.id;
 
     await initRTCPeerConnection();
+
     // Get candidates for caller, save to db
     peerConnection.current.onicecandidate = async (event) => {
-      event.candidate && (await addDoc(collection(firestoreDB, "calls"), event.candidate.toJSON())); // <-- here's error!
+      event.candidate && (await addDoc(offerCandidates, event.candidate.toJSON()));
     };
     // Create offer
     const offerDescription = await peerConnection.current.createOffer();
@@ -59,20 +60,20 @@ export default function App() {
     };
     await setDoc(callDoc, { offer });
     // Listen for remote answer
-    callDoc.onSnapshot((snapshot) => {
+    onSnapshot(callDoc, (snapshot) => {
       const data = snapshot.data();
-      if (!pc.currentRemoteDescription && data?.answer) {
+      if (!peerConnection.current.currentRemoteDescription && data?.answer) {
         const answerDescription = new RTCSessionDescription(data.answer);
-        pc.setRemoteDescription(answerDescription);
+        peerConnection.current.setRemoteDescription(answerDescription);
       }
     });
 
     // Listen for remote ICE candidates
-    answerCandidates.onSnapshot((snapshot) => {
+    onSnapshot(answerCandidates, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const candidate = new RTCIceCandidate(change.doc.data());
-          pc.addIceCandidate(candidate);
+          peerConnection.current.addIceCandidate(candidate);
         }
       });
     });
