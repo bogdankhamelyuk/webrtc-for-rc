@@ -46,7 +46,7 @@ export default function App() {
 
     // Get candidates for caller, save to db
     peerConnection.current.onicecandidate = async (event) => {
-      event.candidate && (await addDoc(offerCandidates, event.candidate.toJSON()));
+      event.candidate && addDoc(offerCandidates, event.candidate.toJSON());
     };
 
     // Create offer
