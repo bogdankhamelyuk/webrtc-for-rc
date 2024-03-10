@@ -37,12 +37,9 @@ export default function App() {
 
   const startCall = async () => {
     startFirebase();
-
-    const callColl = collection(firestoreDB, "calls");
-    const callDoc = doc(callColl);
+    const callColl = doc(collection(firestoreDB, "calls"));
     const offerCandidates = collection(callDoc, "offerCandidates");
     const answerCandidates = collection(callDoc, "answerCandidates");
-    console.log(callDoc);
     callInput = callDoc.id;
 
     await initRTCPeerConnection();
@@ -51,6 +48,7 @@ export default function App() {
     peerConnection.current.onicecandidate = async (event) => {
       event.candidate && (await addDoc(offerCandidates, event.candidate.toJSON()));
     };
+
     // Create offer
     const offerDescription = await peerConnection.current.createOffer();
     await peerConnection.current.setLocalDescription(offerDescription);
@@ -59,6 +57,7 @@ export default function App() {
       type: offerDescription.type,
     };
     await setDoc(callDoc, { offer });
+
     // Listen for remote answer
     onSnapshot(callDoc, (snapshot) => {
       const data = snapshot.data();
