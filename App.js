@@ -37,7 +37,7 @@ export default function App() {
 
   const startCall = async () => {
     startFirebase();
-    const callColl = doc(collection(firestoreDB, "calls"));
+    const callDoc = doc(collection(firestoreDB, "calls"));
     const offerCandidates = collection(callDoc, "offerCandidates");
     const answerCandidates = collection(callDoc, "answerCandidates");
     callInput = callDoc.id;
