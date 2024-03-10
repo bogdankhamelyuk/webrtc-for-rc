@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Button, Switch, SafeAreaView } from "react-nati
 import { MediaStream, RTCPeerConnection, RTCView } from "react-native-webrtc";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { doc, collection } from "firebase/firestore";
+import { doc, collection, setDoc, addDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { getLocalStream } from "./Utils";
 
@@ -17,22 +17,65 @@ export default function App() {
     appId: "1:4376297672:web:7263074fbe4a0fed68e5fd",
   };
   // Initialize Firebase
-  let app, firestoreDB, callDocId;
+  let app, firestoreDB, callInput;
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const peerConnection = useRef();
   const connecting = useRef();
 
+  const generateID = (length) => {
+    let result = "";
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
+  };
+
   const startCall = async () => {
     startFirebase();
-    const callDoc = collection(firestoreDB, "calls");
-    const offerCandidates = doc(firestoreDB, "calls/offerCandidates");
-    const answerCandidates = doc(firestoreDB, "calls/answerCandidates");
-    callDocId = callDoc.id;
+    const path = "calls/" + generateID(5);
+    console.log(path);
+    const callDoc = doc(firestoreDB, path);
+    const offerCandidates = collection(firestoreDB, path + "/offerCandidates");
+    const answerCandidates = collection(firestoreDB, path + "/answerCandidates");
+    console.log(callDoc);
+    callInput = callDoc.id;
+
     await initRTCPeerConnection();
-    peerConnection.current.onicecandidate = (event) => {
-      event.candidate && offerCandidates.add(event.candidate.toJSON());
+    // Get candidates for caller, save to db
+    peerConnection.current.onicecandidate = async (event) => {
+      event.candidate && (await addDoc(collection(firestoreDB, "calls"), event.candidate.toJSON())); // <-- here's error!
     };
+    // Create offer
+    const offerDescription = await peerConnection.current.createOffer();
+    await peerConnection.current.setLocalDescription(offerDescription);
+    const offer = {
+      sdp: offerDescription.sdp,
+      type: offerDescription.type,
+    };
+    await setDoc(callDoc, { offer });
+    // Listen for remote answer
+    callDoc.onSnapshot((snapshot) => {
+      const data = snapshot.data();
+      if (!pc.currentRemoteDescription && data?.answer) {
+        const answerDescription = new RTCSessionDescription(data.answer);
+        pc.setRemoteDescription(answerDescription);
+      }
+    });
+
+    // Listen for remote ICE candidates
+    answerCandidates.onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const candidate = new RTCIceCandidate(change.doc.data());
+          pc.addIceCandidate(candidate);
+        }
+      });
+    });
     console.log("OK");
   };
 
