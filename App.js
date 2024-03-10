@@ -23,13 +23,7 @@ export default function App() {
   const peerConnection = useRef();
   const connecting = useRef();
 
-  const startFirebase = () => {
-    app = initializeApp(firebaseConfig);
-    firestoreDB = getFirestore(app);
-  };
-
   const startCall = async () => {
-    //ToDo: read docs: https://rnfirebase.io/firestore/usage
     startFirebase();
     const callDoc = collection(firestoreDB, "calls");
     const offerCandidates = doc(firestoreDB, "calls/offerCandidates");
@@ -40,6 +34,35 @@ export default function App() {
       event.candidate && offerCandidates.add(event.candidate.toJSON());
     };
     console.log("OK");
+  };
+
+  const startFirebase = () => {
+    app = initializeApp(firebaseConfig);
+    firestoreDB = getFirestore(app);
+  };
+
+  const initRTCPeerConnection = async () => {
+    const config = {
+      iceServers: [
+        {
+          urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
+        },
+      ],
+      iceCandidatePoolSize: 10,
+    };
+    try {
+      peerConnection.current = new RTCPeerConnection(config);
+      const ls = await startLocalStream();
+      // Push tracks from local stream to peer connection
+      ls.getTracks().forEach((track) => {
+        peerConnection.current.addTrack(track, ls);
+      });
+      startRemoteStream();
+      return Promise.resolve();
+    } catch (error) {
+      // console.error("Error initializing RTCPeerConnection:", error);
+      return Promise.reject(error);
+    }
   };
 
   const startLocalStream = async () => {
@@ -66,30 +89,6 @@ export default function App() {
 
   const isLocalStreamAvailable = () => {
     return localStream.video ? true : false;
-  };
-
-  const initRTCPeerConnection = async () => {
-    const config = {
-      iceServers: [
-        {
-          urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
-        },
-      ],
-      iceCandidatePoolSize: 10,
-    };
-    try {
-      peerConnection.current = new RTCPeerConnection(config);
-      const ls = await startLocalStream();
-      // Push tracks from local stream to peer connection
-      ls.getTracks().forEach((track) => {
-        peerConnection.current.addTrack(track, ls);
-      });
-      startRemoteStream();
-      return Promise.resolve();
-    } catch (error) {
-      // console.error("Error initializing RTCPeerConnection:", error);
-      return Promise.reject(error);
-    }
   };
 
   if (!remoteStream) {
