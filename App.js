@@ -23,18 +23,6 @@ export default function App() {
   const peerConnection = useRef();
   const connecting = useRef();
 
-  const generateID = (length) => {
-    let result = "";
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      counter += 1;
-    }
-    return result;
-  };
-
   const startCall = async () => {
     startFirebase();
     const callDoc = doc(collection(firestoreDB, "calls"));
